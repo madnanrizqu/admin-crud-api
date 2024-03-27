@@ -113,8 +113,14 @@ export class PostController {
 
   @UseGuards(AuthGuard)
   @Get('')
-  async getPosts(@Query() query: PostQueryParams): Promise<PostModel[]> {
-    return this.postService.posts({
+  async getPosts(@Query() query: PostQueryParams): Promise<{
+    statusCode: number;
+    data: {
+      total: number;
+      posts: PostModel[];
+    };
+  }> {
+    const { count, res } = await this.postService.posts({
       ...(query.take ? { take: Number(query.take) } : {}),
       ...(query.skip ? { skip: Number(query.skip) } : {}),
       where: query.searchString
@@ -129,7 +135,16 @@ export class PostController {
             ],
           }
         : {},
+      include: { author: { select: { id: true, name: true, email: true } } },
     });
+
+    return {
+      statusCode: 200,
+      data: {
+        total: count,
+        posts: res,
+      },
+    };
   }
 
   @UseGuards(AuthGuard)
@@ -148,7 +163,10 @@ export class PostController {
       statusCode: 200,
       data: await this.postService.updatePost({
         where: { id: Number(post.id) },
-        data: body,
+        data: {
+          title: body.title,
+          content: body.content,
+        },
       }),
     };
   }
