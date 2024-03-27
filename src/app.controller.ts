@@ -10,6 +10,7 @@ import {
   NotFoundException,
   Request,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { PostService } from './post.service';
@@ -17,7 +18,13 @@ import { User as UserModel, Post as PostModel, Prisma } from '@prisma/client';
 import { AppService } from './app.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { IsEmail, IsNotEmpty, IsNumberString, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { AuthGuard } from './auth.guard';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -39,6 +46,16 @@ class CreatePostDraftDTO {
 }
 
 class PublishPostParams {
+  @IsNumberString() id: number;
+}
+
+class PostQueryParams {
+  @IsOptional() @IsNumberString() skip: number;
+  @IsOptional() @IsNumberString() take: number;
+  @IsOptional() @IsString() searchString: string;
+}
+
+class GetPostParams {
   @IsNumberString() id: number;
 }
 
@@ -126,36 +143,6 @@ export class AppController {
   }
 
   // POSTS
-  @Get('post/:id')
-  async getPostById(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.post({ id: Number(id) });
-  }
-
-  @Get('feed')
-  async getPublishedPosts(): Promise<PostModel[]> {
-    return this.postService.posts({
-      where: { published: true },
-    });
-  }
-
-  @Get('filtered-posts/:searchString')
-  async getFilteredPosts(
-    @Param('searchString') searchString: string,
-  ): Promise<PostModel[]> {
-    return this.postService.posts({
-      where: {
-        OR: [
-          {
-            title: { contains: searchString },
-          },
-          {
-            content: { contains: searchString },
-          },
-        ],
-      },
-    });
-  }
-
   @Delete('post/:id')
   async deletePost(@Param('id') id: string): Promise<PostModel> {
     return this.postService.deletePost({ id: Number(id) });
@@ -198,6 +185,42 @@ export class AppController {
     return this.postService.updatePost({
       where: { id: Number(post.id) },
       data: { published: true },
+    });
+  }
+
+  @Get('post/:id')
+  async getPostById(
+    @Param() params: GetPostParams,
+  ): Promise<{ statusCode: number; data: PostModel }> {
+    const post = await this.postService.post({ id: Number(params.id) });
+
+    if (!post) {
+      throw new HttpException('Post not found', 404);
+    }
+
+    return {
+      statusCode: 200,
+      data: post,
+    };
+  }
+
+  @Get('post')
+  async getPosts(@Query() query: PostQueryParams): Promise<PostModel[]> {
+    return this.postService.posts({
+      ...(query.take ? { take: Number(query.take) } : {}),
+      ...(query.skip ? { skip: Number(query.skip) } : {}),
+      where: query.searchString
+        ? {
+            OR: [
+              {
+                content: { contains: query.searchString },
+              },
+              {
+                title: { contains: query.searchString },
+              },
+            ],
+          }
+        : {},
     });
   }
 
