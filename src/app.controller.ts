@@ -6,11 +6,26 @@ import {
   Body,
   Put,
   Delete,
+  HttpException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { PostService } from './post.service';
-import { User as UserModel, Post as PostModel } from '@prisma/client';
+import { User as UserModel, Post as PostModel, Prisma } from '@prisma/client';
 import { AppService } from './app.service';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { IsEmail, IsNotEmpty } from 'class-validator';
+
+class RegisterUserDTO {
+  @IsNotEmpty() name: string;
+  @IsEmail() email: string;
+  @IsNotEmpty() password: string;
+}
+
+class LoginDTO {
+  @IsEmail() email: string;
+  @IsNotEmpty() password: string;
+}
 
 @Controller()
 export class AppController {
@@ -18,6 +33,7 @@ export class AppController {
     private readonly userService: UserService,
     private readonly postService: PostService,
     private readonly appService: AppService,
+    private jwtService: JwtService,
   ) {}
 
   @Get('post/:id')
@@ -64,11 +80,63 @@ export class AppController {
     });
   }
 
-  @Post('user')
-  async signupUser(
-    @Body() userData: { name?: string; email: string },
-  ): Promise<UserModel> {
-    return this.userService.createUser(userData);
+  @Post('register')
+  async signupUser(@Body() userData: RegisterUserDTO): Promise<{
+    statusCode: number;
+    data: Partial<UserModel>;
+  }> {
+    try {
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      const user = await this.userService.createUser({
+        email: userData.email,
+        name: userData.name,
+        password: hashedPassword,
+      });
+
+      return {
+        statusCode: 200,
+        data: {
+          email: user.email,
+          id: user.id,
+          name: user.name,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new HttpException(
+            'Email or contact number already exist, please provide another one',
+            404,
+          );
+        }
+      } else {
+        console.log(error);
+        throw new HttpException('Something went wrong', 500);
+      }
+    }
+  }
+
+  @Post('login')
+  async login(@Body() body: LoginDTO): Promise<{
+    statusCode: number;
+    data?: { accessToken: string };
+    message?: string;
+  }> {
+    const user = await this.userService.findUser({ email: body.email });
+
+    if (!user || !(await bcrypt.compare(body.password, user.password))) {
+      throw new HttpException('Invalid email or password', 401);
+    }
+
+    return {
+      statusCode: 200,
+      data: {
+        accessToken: await this.jwtService.signAsync({
+          sub: user.id,
+          email: user.email,
+        }),
+      },
+    };
   }
 
   @Put('publish/:id')

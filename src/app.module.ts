@@ -5,9 +5,14 @@ import { UserService } from './user.service';
 import { PostService } from './post.service';
 import { PrismaService } from './prisma.service';
 import { AppService } from './app.service';
+import { JwtModule } from '@nestjs/jwt';
+import { constants } from './constants';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
+  imports: [
+    ConfigModule.forRoot(),
+    JwtModule.register({ global: true, secret: constants.jwtSecret }),
+  ],
   controllers: [AppController],
   providers: [UserService, PostService, PrismaService, AppService],
 })
