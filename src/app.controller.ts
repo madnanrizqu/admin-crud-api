@@ -7,7 +7,7 @@ export class AppController {
 
   // HEALTH CHECK
   @Get('/')
-  getHello() {
-    return this.appService.getHello();
+  healthCheck() {
+    return this.appService.healthCheck();
   }
 }

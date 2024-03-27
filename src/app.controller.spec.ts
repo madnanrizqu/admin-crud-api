@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UserService } from './user.service';
-import { PostService } from './post.service';
-import { PrismaService } from './prisma.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -11,15 +8,18 @@ describe('AppController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService, UserService, PostService, PrismaService],
+      providers: [AppService],
     }).compile();
 
     appController = app.get<AppController>(AppController);
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return "Service is healthy!"', () => {
+      expect(appController.healthCheck()).toEqual({
+        statusCode: 200,
+        message: 'Service is healthy!',
+      });
     });
   });
 });
