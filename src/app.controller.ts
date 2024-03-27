@@ -7,6 +7,9 @@ import {
   Put,
   Delete,
   HttpException,
+  NotFoundException,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { PostService } from './post.service';
@@ -15,6 +18,7 @@ import { AppService } from './app.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { IsEmail, IsNotEmpty } from 'class-validator';
+import { AuthGuard } from './auth.guard';
 
 class RegisterUserDTO {
   @IsNotEmpty() name: string;
@@ -91,9 +95,23 @@ export class AppController {
         accessToken: await this.jwtService.signAsync({
           sub: user.id,
           email: user.email,
+          name: user.name,
         }),
       },
     };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/me')
+  getCurrentUser(@Request() req): Promise<{
+    statusCode: number;
+    data: Partial<UserModel>;
+  }> {
+    try {
+      return req.user;
+    } catch (error) {
+      throw new NotFoundException();
+    }
   }
 
   // POSTS
