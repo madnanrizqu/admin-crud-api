@@ -36,50 +36,7 @@ export class AppController {
     private jwtService: JwtService,
   ) {}
 
-  @Get('post/:id')
-  async getPostById(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.post({ id: Number(id) });
-  }
-
-  @Get('feed')
-  async getPublishedPosts(): Promise<PostModel[]> {
-    return this.postService.posts({
-      where: { published: true },
-    });
-  }
-
-  @Get('filtered-posts/:searchString')
-  async getFilteredPosts(
-    @Param('searchString') searchString: string,
-  ): Promise<PostModel[]> {
-    return this.postService.posts({
-      where: {
-        OR: [
-          {
-            title: { contains: searchString },
-          },
-          {
-            content: { contains: searchString },
-          },
-        ],
-      },
-    });
-  }
-
-  @Post('post')
-  async createDraft(
-    @Body() postData: { title: string; content?: string; authorEmail: string },
-  ): Promise<PostModel> {
-    const { title, content, authorEmail } = postData;
-    return this.postService.createPost({
-      title,
-      content,
-      author: {
-        connect: { email: authorEmail },
-      },
-    });
-  }
-
+  // AUTH
   @Post('register')
   async signupUser(@Body() userData: RegisterUserDTO): Promise<{
     statusCode: number;
@@ -139,6 +96,37 @@ export class AppController {
     };
   }
 
+  // POSTS
+  @Get('post/:id')
+  async getPostById(@Param('id') id: string): Promise<PostModel> {
+    return this.postService.post({ id: Number(id) });
+  }
+
+  @Get('feed')
+  async getPublishedPosts(): Promise<PostModel[]> {
+    return this.postService.posts({
+      where: { published: true },
+    });
+  }
+
+  @Get('filtered-posts/:searchString')
+  async getFilteredPosts(
+    @Param('searchString') searchString: string,
+  ): Promise<PostModel[]> {
+    return this.postService.posts({
+      where: {
+        OR: [
+          {
+            title: { contains: searchString },
+          },
+          {
+            content: { contains: searchString },
+          },
+        ],
+      },
+    });
+  }
+
   @Put('publish/:id')
   async publishPost(@Param('id') id: string): Promise<PostModel> {
     return this.postService.updatePost({
@@ -152,6 +140,21 @@ export class AppController {
     return this.postService.deletePost({ id: Number(id) });
   }
 
+  @Post('post')
+  async createDraft(
+    @Body() postData: { title: string; content?: string; authorEmail: string },
+  ): Promise<PostModel> {
+    const { title, content, authorEmail } = postData;
+    return this.postService.createPost({
+      title,
+      content,
+      author: {
+        connect: { email: authorEmail },
+      },
+    });
+  }
+
+  // HEALTH CHECK
   @Get('/')
   getHello() {
     return this.appService.getHello();
