@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { constants } from './constants';
 import { Request } from 'express';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -24,7 +25,12 @@ export class AuthGuard implements CanActivate {
       });
       // 💡 We're assigning the payload to the request object here
       // so that we can access it in our route handlers
-      request['user'] = payload;
+      const user: Partial<User> = {
+        id: payload.sub,
+        name: payload.name,
+        email: payload.email,
+      };
+      request['user'] = user;
     } catch {
       throw new UnauthorizedException();
     }
