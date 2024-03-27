@@ -17,8 +17,9 @@ import { User as UserModel, Post as PostModel, Prisma } from '@prisma/client';
 import { AppService } from './app.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsNumberString, IsString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 class RegisterUserDTO {
   @IsNotEmpty() name: string;
@@ -29,6 +30,16 @@ class RegisterUserDTO {
 class LoginDTO {
   @IsEmail() email: string;
   @IsNotEmpty() password: string;
+}
+
+class CreatePostDraftDTO {
+  @IsString() title: string;
+  @IsString() content: string;
+  @IsEmail() authorEmail: string;
+}
+
+class PublishPostParams {
+  @IsNumberString() id: number;
 }
 
 @Controller()
@@ -145,30 +156,48 @@ export class AppController {
     });
   }
 
-  @Put('publish/:id')
-  async publishPost(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.updatePost({
-      where: { id: Number(id) },
-      data: { published: true },
-    });
-  }
-
   @Delete('post/:id')
   async deletePost(@Param('id') id: string): Promise<PostModel> {
     return this.postService.deletePost({ id: Number(id) });
   }
 
+  @UseGuards(AuthGuard)
   @Post('post')
-  async createDraft(
-    @Body() postData: { title: string; content?: string; authorEmail: string },
-  ): Promise<PostModel> {
+  async createPostDraft(
+    @Body() postData: CreatePostDraftDTO,
+  ): Promise<{ statusCode: number; data: PostModel }> {
     const { title, content, authorEmail } = postData;
-    return this.postService.createPost({
-      title,
-      content,
-      author: {
-        connect: { email: authorEmail },
-      },
+    try {
+      return {
+        statusCode: 200,
+        data: await this.postService.createPost({
+          title,
+          content,
+          author: {
+            connect: { email: authorEmail },
+          },
+        }),
+      };
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new HttpException('Author not found', 404);
+        }
+      }
+    }
+  }
+
+  @Put('post/publish/:id')
+  async publishPost(@Param() params: PublishPostParams): Promise<PostModel> {
+    const post = await this.postService.post({ id: Number(params.id) });
+
+    if (!post) {
+      throw new HttpException('Post not found', 404);
+    }
+
+    return this.postService.updatePost({
+      where: { id: Number(post.id) },
+      data: { published: true },
     });
   }
 
