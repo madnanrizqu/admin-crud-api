@@ -174,6 +174,7 @@ export class AppController {
     }
   }
 
+  @UseGuards(AuthGuard)
   @Put('post/publish/:id')
   async publishPost(@Param() params: PublishPostParams): Promise<PostModel> {
     const post = await this.postService.post({ id: Number(params.id) });
@@ -188,6 +189,7 @@ export class AppController {
     });
   }
 
+  @UseGuards(AuthGuard)
   @Get('post/:id')
   async getPostById(
     @Param() params: GetPostParams,
@@ -204,6 +206,7 @@ export class AppController {
     };
   }
 
+  @UseGuards(AuthGuard)
   @Get('post')
   async getPosts(@Query() query: PostQueryParams): Promise<PostModel[]> {
     return this.postService.posts({
