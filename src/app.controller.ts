@@ -68,6 +68,10 @@ class UpdatePostBody {
   @IsOptional() @IsString() content: string;
 }
 
+class DeletePostParams {
+  @IsNumberString() id: number;
+}
+
 @Controller()
 export class AppController {
   constructor(
@@ -152,11 +156,6 @@ export class AppController {
   }
 
   // POSTS
-  @Delete('post/:id')
-  async deletePost(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.deletePost({ id: Number(id) });
-  }
-
   @UseGuards(AuthGuard)
   @Post('post')
   async createPostDraft(
@@ -254,6 +253,25 @@ export class AppController {
         where: { id: Number(post.id) },
         data: body,
       }),
+    };
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('post/:id')
+  async deletePost(
+    @Param() params: DeletePostParams,
+  ): Promise<{ statusCode: number; message: string }> {
+    const post = await this.postService.post({ id: Number(params.id) });
+
+    if (!post) {
+      throw new HttpException('Post not found', 404);
+    }
+
+    await this.postService.deletePost({ id: Number(params.id) });
+
+    return {
+      statusCode: 200,
+      message: `Successfully deleted post with id ${params.id}`,
     };
   }
 
