@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { constants } from './constants';
+import { constants } from '../constants';
 import { Request } from 'express';
 import { User } from '@prisma/client';
 

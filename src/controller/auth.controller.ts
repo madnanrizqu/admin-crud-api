@@ -8,13 +8,13 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { UserService } from './user.service';
+import { UserService } from '../service/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { IsEmail, IsNotEmpty } from 'class-validator';
 import { User as UserModel } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from '../guard/auth.guard';
 
 class RegisterUserDTO {
   @IsNotEmpty() name: string;

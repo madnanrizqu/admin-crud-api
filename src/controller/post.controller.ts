@@ -10,10 +10,10 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { PostService } from './post.service';
+import { PostService } from '../service/post.service';
 import { Post as PostModel } from '@prisma/client';
 import { IsEmail, IsNumberString, IsOptional, IsString } from 'class-validator';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from '../guard/auth.guard';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 class CreatePostDraftDTO {
