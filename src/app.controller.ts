@@ -59,6 +59,15 @@ class GetPostParams {
   @IsNumberString() id: number;
 }
 
+class UpdatePostParams {
+  @IsNumberString() id: number;
+}
+
+class UpdatePostBody {
+  @IsOptional() @IsString() title: string;
+  @IsOptional() @IsString() content: string;
+}
+
 @Controller()
 export class AppController {
   constructor(
@@ -225,6 +234,27 @@ export class AppController {
           }
         : {},
     });
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('post/:id')
+  async updatePost(
+    @Param() params: UpdatePostParams,
+    @Body() body: UpdatePostBody,
+  ): Promise<{ statusCode: number; data: PostModel }> {
+    const post = await this.postService.post({ id: Number(params.id) });
+
+    if (!post) {
+      throw new HttpException('Post not found', 404);
+    }
+
+    return {
+      statusCode: 200,
+      data: await this.postService.updatePost({
+        where: { id: Number(post.id) },
+        data: body,
+      }),
+    };
   }
 
   // HEALTH CHECK
